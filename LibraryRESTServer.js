@@ -147,6 +147,8 @@ const server = http.createServer((req, res) => {
 
 
 
-// start listening on configured hostname and port\ nserver.listen(port, hostname, () => {
-console.log(`libraryrestserver running at http://${hostname}:${port}/`);
+// start listening on configured hostname and port
+server.listen(port, hostname, () => {
+  console.log(`libraryrestserver running at http://${hostname}:${port}/`);
+});
 
