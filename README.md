@@ -6,6 +6,6 @@
     npm install cors
 	
 // to run:
-	$ node PetRESTServer.js
-	$ node app.js
-	open frontEnd.html
+	$ node PetRESTServer.js <br>
+	$ node app.js <br>
+	open frontEnd.html <br>
