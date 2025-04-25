@@ -1,11 +1,11 @@
-// install:
-    $ npm init -y
-    $ npm install express
+// install: <br>
+    $ npm init -y <br>
+    $ npm install express <br>
 
-// this directory requires CORS installation:
+// this directory requires CORS installation: <br>
     npm install cors
 	
-// to run:
+// to run: <br>
 	$ node PetRESTServer.js <br>
 	$ node app.js <br>
 	open frontEnd.html <br>
