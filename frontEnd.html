@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pet Adoption Center</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    h1, h2 { text-align: center; }
+    form { margin-bottom: 20px; }
+    label { display: block; margin: 5px 0 2px; }
+    input { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { margin-top: 10px; padding: 8px 12px; }
+    #petList { list-style: none; padding: 0; }
+    #petList li { padding: 8px; border-bottom: 1px solid #ddd; }
+    #petList li span { margin-right: 10px; }
+    #petList li button { margin-right: 5px; }
+    pre { background: #f4f4f4; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Pet Adoption Center</h1>
+
+  <!-- ADD NEW PET -->
+  <section>
+    <h2>Add a New Pet</h2>
+    <form id="addForm">
+      <label for="addName">Name</label>
+      <input id="addName" required>
+      <label for="addBreed">Breed</label>
+      <input id="addBreed" required>
+      <label for="addAge">Age</label>
+      <input id="addAge" type="number" min="0" required>
+      <button type="submit">Add Pet</button>
+    </form>
+  </section>
+
+  <!-- UPDATE PET -->
+  <section>
+    <h2>Update an Existing Pet</h2>
+    <form id="updateForm">
+      <label for="updateName">Existing Name</label>
+      <input id="updateName" required>
+      <label for="updateBreed">New Breed</label>
+      <input id="updateBreed" required>
+      <label for="updateAge">New Age</label>
+      <input id="updateAge" type="number" min="0" required>
+      <button type="submit">Update Pet</button>
+    </form>
+  </section>
+
+  <!-- PET LIST -->
+  <section>
+    <h2>Available Pets</h2>
+    <button id="refresh">Refresh List</button>
+    <ul id="petList"></ul>
+  </section>
+
+  <!-- PET DETAILS -->
+  <section>
+    <h2>Pet Details</h2>
+    <pre id="detailPane">Select “View” on a pet above to see details here.</pre>
+  </section>
+
+  <script>
+    const API = 'http://localhost:8080/pets';
+    let petListNames = [];  // store current pet names for case-insensitive lookup
+
+    function showDetail(text) {
+      document.getElementById('detailPane').textContent = text;
+    }
+
+    async function loadPets() {
+      try {
+        const res = await fetch(API);
+        petListNames = await res.json();
+        const ul = document.getElementById('petList');
+        ul.innerHTML = '';
+        petListNames.forEach(name => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <span>${name}</span>
+            <button data-action="view" data-name="${name}">View</button>
+            <button data-action="adopt" data-name="${name}">Adopt</button>
+          `;
+          ul.appendChild(li);
+        });
+      } catch (err) {
+        showDetail('Error loading pets: ' + err);
+      }
+    }
+
+    async function viewPet(name) {
+      try {
+        const res = await fetch(`${API}/${encodeURIComponent(name)}`);
+        if (!res.ok) {
+          showDetail(await res.text());
+          return;
+        }
+        const pet = await res.json();
+        showDetail(JSON.stringify({ name, ...pet }, null, 2));
+      } catch (err) {
+        showDetail('Error fetching pet: ' + err);
+      }
+    }
+
+    async function adoptPet(name) {
+      if (!confirm(`Adopt (delete) ${name}?`)) return;
+      try {
+        const res = await fetch(`${API}/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        const msg = await res.text();
+        showDetail(msg);
+        loadPets();
+      } catch (err) {
+        showDetail('Error deleting pet: ' + err);
+      }
+    }
+
+    document.getElementById('addForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const name  = document.getElementById('addName').value.trim();
+      const breed = document.getElementById('addBreed').value.trim();
+      const age   = document.getElementById('addAge').value;
+      try {
+        const res = await fetch(`${API}/${encodeURIComponent(name)}/${encodeURIComponent(breed)}/${age}`, {
+          method: 'POST'
+        });
+        const msg = await res.text();
+        showDetail(msg);
+        loadPets();
+        e.target.reset();
+      } catch (err) {
+        showDetail('Error adding pet: ' + err);
+      }
+    });
+
+    document.getElementById('updateForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const inputName = document.getElementById('updateName').value.trim();
+      const match = petListNames.find(n => n.toLowerCase() === inputName.toLowerCase());
+      if (!match) {
+        showDetail(`Pet "${inputName}" not found.`);
+        return;
+      }
+      const name  = match;
+      const breed = document.getElementById('updateBreed').value.trim();
+      const age   = document.getElementById('updateAge').value;
+      try {
+        const res = await fetch(`${API}/${encodeURIComponent(name)}/${encodeURIComponent(breed)}/${age}`, {
+          method: 'PUT'
+        });
+        const msg = await res.text();
+        showDetail(msg);
+        loadPets();
+        e.target.reset();
+      } catch (err) {
+        showDetail('Error updating pet: ' + err);
+      }
+    });
+
+    document.getElementById('petList').addEventListener('click', e => {
+      if (e.target.tagName === 'BUTTON') {
+        const action = e.target.dataset.action;
+        const name   = e.target.dataset.name;
+        if (action === 'view')  viewPet(name);
+        if (action === 'adopt') adoptPet(name);
+      }
+    });
+
+    document.getElementById('refresh').addEventListener('click', loadPets);
+    window.addEventListener('load', loadPets);
+  </script>
+</body>
+</html>
